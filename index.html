@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body{
+            font-size: 22px;
+            color: #4d4d4d;
+        }
+        .colored{
+            font-size: 30px;
+            color: black
+        }
+    </style>
+    <title>Document</title>
+</head>
+<body>
+    <div style="display: flex;">
+        <canvas width="1500" height="800" style="border: 2px solid grey;" id="graph"></canvas>
+        <div style="margin-left: 30px; "> 
+            <p>Number of Verts: <span class="colored">10</span></p>
+            <p>Max number of Edges of simple Graph: <span class="colored">10*9/2</span></p>
+            <p>Number of Edges: <span class="colored" id='edges'></span> </p>
+            <p>Path used to check Euler Circuit: <span class="colored" id='path' ></span> </p>
+        </div>
+    </div>
+</body>
+<script>
+    const canvas = document.getElementById('graph');
+const ctx = canvas.getContext('2d');
+
+var vertices;
+var edges;
+const maxEdgeNum = 10 * 9 / 2;
+var checkedVert;
+var checkedEdges;
+
+
+
+
+// --------------------------------------------- DRAWG GRAPH ---------------------------------------------
+function drawGraph() {
+    ctx.globalAlpha = 0.7;
+    edges = [];
+    vertices = [];
+    tenVerts();
+    generateEdges();
+
+}
+
+
+// ------------------------------------------- VERTEX METHODS --------------------------------------------
+function createVertex(x, y, id) {
+    let vert = { x: x, y: y, edges: [], id: id };
+    ctx.lineWidth = 5;
+    vertices.push(vert);
+    ctx.fillRect(10, 10, 1, 1);
+    return vert;
+}
+
+function tenVerts() {
+    for (let index = 0; index < 10; index++) {
+        createVertex(
+            Math.floor(Math.random() * 100) * 10,
+            Math.floor(Math.random() * 100) * 8,
+            index
+        )
+    }
+
+}
+
+// ------------------------------------------- EDGES METHODS --------------------------------------------
+function createEdge(v1, v2, id) {
+    let edge = { id: id, v1: v1, v2: v2 };
+    vertices
+    ctx.beginPath();
+    ctx.lineWidth = randomNumber();
+    ctx.strokeStyle = getRandomColor();
+    ctx.moveTo(v1.x, v1.y);
+    ctx.lineTo(v2.x, v2.y);
+    ctx.stroke();
+    ctx.closePath();
+    edges.push(edge);
+}
+
+function generateEdges() {
+    let numOfVert = Math.floor(Math.random() * maxEdgeNum)
+    let index = 0;
+    for (let id = 0; id < numOfVert; id++) {
+        let vert1 = Math.floor(Math.random() * 10);
+        let vert2 = Math.floor(Math.random() * 10);
+        if (vert1 != vert2 && !existEdge(vert1, vert2)) {
+            vertices[vert1]['edges'].push(index);
+            vertices[vert2]['edges'].push(index);
+            index++;
+            createEdge(
+                vertices[vert1],
+                vertices[vert2],
+                id)
+
+        }
+    }
+}
+
+function existEdge(v1, v2) {
+    vert1 = vertices[v1];
+    vert2 = vertices[v2];
+    let search = edges.find((edge) => {
+        if (JSON.stringify(vert1) === JSON.stringify(edge.v1) && JSON.stringify(vert2) === JSON.stringify(edge.v2)) {
+            return true;
+        }
+        if (JSON.stringify(vert1) === JSON.stringify(edge.v2) && JSON.stringify(vert2) === JSON.stringify(edge.v1)) {
+            return true;
+        }
+
+    })
+    return search;
+}
+
+// ------------------------------------------- HELP METHODS --------------------------------------------
+function getRandomColor() {
+    var letters = '0123456789ABCDEF';
+    var color = '#';
+    for (var i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+function clearRectangle() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function randomNumber() {
+    const r = Math.random() * (11 - 4) + 4;
+    return Math.floor(r);
+}
+
+
+// ------------------------------------------- MAIN LOGIC --------------------------------------------
+
+function checkEvenDeg() {
+    for (let i = 0; i < vertices.length; i++) {
+        if (vertices[i]['edges'].length % 2 != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function sartCheckCycle() {
+    checkedEdges = [];
+    checkedVert = [];
+    let notEmptyVert = vertices.find((vert) => vert['edges'].length !== 0);
+    checkCircuit(notEmptyVert);
+    return { numVert: checkedVert.length, numEdges: checkedEdges.length }
+}
+
+function checkCircuit(vert) {
+    if (!checkedVert.includes(vert['id'])) {
+        checkedVert.push(vert['id'])
+        for (let i = 0; i < vert['edges'].length; i++) {
+            if (!checkedEdges.includes(vert['edges'][i])) {
+                checkedEdges.push(vert['edges'][i]);
+                let edge = edges[vert['edges'][i]];
+                checkCircuit(vertices[edge['v1']['id']]);
+                checkCircuit(vertices[edge['v2']['id']]);
+            }
+        }
+    }
+}
+
+function checkEuler() {
+    drawGraph();
+    setTimeout(() => {/// тут сет таймайут для того что бы если код хотите увидеть процесс подбора
+        if (checkEvenDeg() && edges.length != 0) {
+            let check = sartCheckCycle();
+            if (check['numEdges'] == edges.length && check['numVert'] == vertices.length) {
+                document.getElementById("path").innerHTML = `${checkedVert.join('->')}`;
+                console.log(vertices);
+                console.log(edges);
+            }
+            else {
+                checkEuler();
+            }
+        }
+        else {
+            clearRectangle();
+            checkEuler()
+        }
+
+    }, 00)// Здесь можно высставить время в миллесикундах
+    document.getElementById("edges").innerHTML = `${edges.length}`;
+}
+
+
+
+checkEuler();
+</script>
+</html>
